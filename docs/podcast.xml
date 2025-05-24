@@ -1,0 +1,50 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<rss version="2.0" xmlns:itunes="http://www.itunes.com/dtds/podcast-1.0.dtd" xmlns:content="http://purl.org/rss/1.0/modules/content/">
+    <channel>
+        <title>Read Articles Podcast</title>
+        <link>https://YOUR_GITHUB_USERNAME.github.io/read-articles/</link>
+        <description>AI-generated audio versions of interesting articles using Kokoro TTS</description>
+        <language>en-us</language>
+        <copyright>© 2025 Read Articles Podcast</copyright>
+        <itunes:author>Read Articles</itunes:author>
+        <itunes:summary>AI-generated audio versions of interesting articles using Kokoro TTS</itunes:summary>
+        <itunes:owner>
+            <itunes:name>Read Articles</itunes:name>
+            <itunes:email>your-email@example.com</itunes:email>
+        </itunes:owner>
+        <itunes:image href="https://YOUR_GITHUB_USERNAME.github.io/read-articles/podcast-cover.jpg"/>
+        <itunes:category text="News"/>
+        <itunes:category text="Technology"/>
+        <itunes:explicit>false</itunes:explicit>
+        <lastBuildDate>Wed, 31 Jan 2025 12:00:00 GMT</lastBuildDate>
+        <pubDate>Wed, 31 Jan 2025 12:00:00 GMT</pubDate>
+        
+        <item>
+            <title>What Are People Still Doing on X? - The Atlantic (Santa Voice)</title>
+            <link>https://YOUR_GITHUB_USERNAME.github.io/read-articles/</link>
+            <description>An exploration of why people continue to use X (formerly Twitter) despite its controversies. Read by AI voice: am_santa</description>
+            <enclosure url="https://YOUR_GITHUB_USERNAME.github.io/read-articles/episodes/atlantic_article_am_santa.mp3" length="12000000" type="audio/mpeg"/>
+            <guid isPermaLink="false">atlantic_article_am_santa_2025_01_31</guid>
+            <pubDate>Wed, 31 Jan 2025 12:00:00 GMT</pubDate>
+            <itunes:duration>611</itunes:duration>
+            <itunes:author>The Atlantic (AI Narrated)</itunes:author>
+            <itunes:subtitle>Why people still use X despite controversies</itunes:subtitle>
+            <itunes:summary>An exploration of why people continue to use X (formerly Twitter) despite its controversies, exploring the psychological and social factors that keep users engaged with the platform. Narrated by AI voice am_santa.</itunes:summary>
+            <itunes:explicit>false</itunes:explicit>
+        </item>
+        
+        <item>
+            <title>What Are People Still Doing on X? - The Atlantic (Bella Voice)</title>
+            <link>https://YOUR_GITHUB_USERNAME.github.io/read-articles/</link>
+            <description>An exploration of why people continue to use X (formerly Twitter) despite its controversies. Read by AI voice: af_bella</description>
+            <enclosure url="https://YOUR_GITHUB_USERNAME.github.io/read-articles/episodes/atlantic_article.mp3" length="12000000" type="audio/mpeg"/>
+            <guid isPermaLink="false">atlantic_article_af_bella_2025_01_31</guid>
+            <pubDate>Wed, 31 Jan 2025 11:00:00 GMT</pubDate>
+            <itunes:duration>644</itunes:duration>
+            <itunes:author>The Atlantic (AI Narrated)</itunes:author>
+            <itunes:subtitle>Why people still use X despite controversies</itunes:subtitle>
+            <itunes:summary>An exploration of why people continue to use X (formerly Twitter) despite its controversies, exploring the psychological and social factors that keep users engaged with the platform. Narrated by AI voice af_bella.</itunes:summary>
+            <itunes:explicit>false</itunes:explicit>
+        </item>
+    </channel>
+</rss> 

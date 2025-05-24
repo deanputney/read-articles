@@ -1,0 +1,31 @@
+# Model files (too large for git)
+*.onnx
+*.bin
+
+# Audio working files (keep only the ones in docs/episodes)
+/*.mp3
+/*.wav
+
+# Python cache
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+
+# Virtual environments
+venv/
+env/
+.env
+
+# IDE files
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# macOS
+.DS_Store
+
+# Temporary files
+*.tmp
+*.temp 
