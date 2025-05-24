@@ -4,9 +4,9 @@ An AI-powered podcast that converts interesting articles into high-quality audio
 
 ## 🔗 Listen to the Podcast
 
-**Website:** [https://YOUR_GITHUB_USERNAME.github.io/read-articles/](https://YOUR_GITHUB_USERNAME.github.io/read-articles/)
+**Website:** [https://deanputney.github.io/read-articles/](https://deanputney.github.io/read-articles/)
 
-**RSS Feed:** `https://YOUR_GITHUB_USERNAME.github.io/read-articles/podcast.xml`
+**RSS Feed:** `https://deanputney.github.io/read-articles/podcast.xml`
 
 ## 📱 How to Subscribe
 
@@ -96,6 +96,13 @@ kokoro_tts.py          # TTS conversion script
 5. Update `docs/podcast.xml` with the new episode
 6. Update `docs/index.html` with the episode info
 7. Commit and push to GitHub
+
+8. **Push to GitHub:**
+   ```bash
+   git remote add origin https://github.com/deanputney/read-articles.git
+   git branch -M main
+   git push -u origin main
+   ```
 
 ## 🎯 Future Enhancements
 
