@@ -75,6 +75,15 @@ This podcast is automatically deployed using GitHub Pages:
 2. GitHub Pages serves the content from the `docs/` folder
 3. The RSS feed and episodes are immediately available
 
+### Automated Workflow
+
+The project includes a GitHub Action that automates the entire process:
+- Add URLs to `article_urls.txt`
+- The action fetches the articles and converts them to markdown
+- It generates audio using Kokoro TTS
+- The podcast feed and website are automatically updated
+- Changes are committed and deployed to GitHub Pages
+
 ### File Structure
 
 ```
@@ -84,10 +93,28 @@ docs/
 └── episodes/           # Audio files
     ├── episode1.mp3
     └── episode2.mp3
-kokoro_tts.py          # TTS conversion script
+kokoro_tts.py           # TTS conversion script
+article_fetcher.py      # Script to fetch articles from URLs
+update_podcast.py       # Script to update the podcast feed and website
+article_urls.txt        # List of article URLs to process
 ```
 
 ## 📄 Adding New Episodes
+
+### Method 1: Using GitHub Actions (Automated)
+
+1. Edit the `article_urls.txt` file
+2. Add the URLs of articles you want to convert (one per line)
+3. Commit and push the changes to GitHub
+4. The GitHub Action will automatically:
+   - Fetch the articles and convert them to markdown
+   - Generate audio files using Kokoro TTS
+   - Update the podcast feed and website
+   - Deploy the changes
+
+You can also manually trigger the workflow from the Actions tab in GitHub and select a different voice.
+
+### Method 2: Manually
 
 1. Add your article (Markdown format) to the root directory
 2. Update `kokoro_tts.py` with the filename and desired voice
@@ -106,10 +133,10 @@ kokoro_tts.py          # TTS conversion script
 
 ## 🎯 Future Enhancements
 
-- [ ] Automated episode generation from RSS feeds
+- [x] Automated episode generation from URLs
 - [ ] Multiple language support
 - [ ] Voice blending capabilities
-- [ ] Automatic podcast feed updates
+- [x] Automatic podcast feed updates
 - [ ] Chapter markers for long articles
 - [ ] Speed control options
 

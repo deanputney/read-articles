@@ -1,10 +1,12 @@
 #!/usr/bin/env python3
 """
-Script to convert the Atlantic article to MP3 using Kokoro TTS
+Script to convert markdown articles to MP3 using Kokoro TTS
 """
 
 import os
 import re
+import sys
+import argparse
 from pathlib import Path
 import urllib.request
 import numpy as np
@@ -82,26 +84,19 @@ def save_audio_as_mp3(audio_data, sample_rate, output_path):
             os.unlink(temp_wav_path)
 
 def main():
+    """Main function to process articles to audio"""
+    # Parse command line arguments
+    parser = argparse.ArgumentParser(description='Convert markdown articles to MP3 using Kokoro TTS')
+    parser.add_argument('--article', '-a', help='Path to markdown article file')
+    parser.add_argument('--voice', '-v', default='am_santa', help='Voice to use (e.g., am_santa, af_bella)')
+    parser.add_argument('--all', action='store_true', help='Process all markdown files in the current directory')
+    args = parser.parse_args()
+
     # Download model files if needed
     if not download_model_files():
         print("Failed to download required model files")
-        return
-    
-    # Read the article
-    article_path = Path("What Are People Still Doing on X? - The Atlantic.md")
-    
-    if not article_path.exists():
-        print(f"Error: {article_path} not found")
-        return
-    
-    with open(article_path, 'r', encoding='utf-8') as f:
-        content = f.read()
-    
-    # Clean the text
-    clean_content = clean_text_for_tts(content)
-    
-    print(f"Processing {len(clean_content)} characters...")
-    
+        return False
+
     # Initialize Kokoro TTS with required paths
     model_path = "kokoro-v1.0.onnx"
     voices_path = "voices-v1.0.bin"
@@ -109,21 +104,74 @@ def main():
     print("Initializing Kokoro TTS...")
     tts = kokoro_onnx.Kokoro(model_path=model_path, voices_path=voices_path)
     
-    # Generate audio
-    print("Generating audio with Kokoro TTS...")
-    # Use am_santa - American male voice with Santa characteristics
-    voice = "am_santa"
-    audio = tts.create(clean_content, voice=voice)
+    # Collect the files to process
+    article_files = []
     
-    # Save as MP3 with voice name in filename
-    output_path = f"atlantic_article_{voice}.mp3"
-    sample_rate = 24000  # Kokoro TTS uses 24kHz sample rate
+    if args.all:
+        # Process all markdown files in the current directory
+        article_files = list(Path('.').glob('*.md'))
+        if not article_files:
+            print("No markdown files found in the current directory")
+            return False
+    elif args.article:
+        # Process a specific article file
+        article_path = Path(args.article)
+        if not article_path.exists():
+            print(f"Error: {article_path} not found")
+            return False
+        article_files = [article_path]
+    else:
+        # No article specified, check for default one
+        article_path = Path("What Are People Still Doing on X? - The Atlantic.md")
+        if article_path.exists():
+            article_files = [article_path]
+        else:
+            print("No article specified and no default article found")
+            print("Use --article to specify an article file or --all to process all markdown files")
+            return False
     
-    print(f"Saving audio to {output_path}...")
-    save_audio_as_mp3(audio[0], sample_rate, output_path)
+    success_count = 0
     
-    print(f"Audio saved as {output_path}")
-    print(f"Duration: {len(audio[0]) / sample_rate:.1f} seconds")
+    # Process each article
+    for article_path in article_files:
+        print(f"\nProcessing article: {article_path}")
+        
+        # Read the article
+        with open(article_path, 'r', encoding='utf-8') as f:
+            content = f.read()
+        
+        # Clean the text
+        clean_content = clean_text_for_tts(content)
+        
+        print(f"Processing {len(clean_content)} characters...")
+        
+        # Generate audio
+        print(f"Generating audio with Kokoro TTS using voice: {args.voice}...")
+        try:
+            audio = tts.create(clean_content, voice=args.voice)
+            
+            # Create a safe filename from the article path
+            base_name = article_path.stem.replace(' ', '_').lower()
+            output_path = f"{base_name}_{args.voice}.mp3"
+            sample_rate = 24000  # Kokoro TTS uses 24kHz sample rate
+            
+            print(f"Saving audio to {output_path}...")
+            save_audio_as_mp3(audio[0], sample_rate, output_path)
+            
+            duration_seconds = len(audio[0]) / sample_rate
+            minutes = int(duration_seconds // 60)
+            seconds = int(duration_seconds % 60)
+            
+            print(f"Audio saved as {output_path}")
+            print(f"Duration: {minutes}:{seconds:02d}")
+            success_count += 1
+            
+        except Exception as e:
+            print(f"Error generating audio for {article_path}: {e}")
+    
+    print(f"\nSuccessfully processed {success_count} out of {len(article_files)} articles")
+    return success_count > 0
 
 if __name__ == "__main__":
-    main()
+    success = main()
+    sys.exit(0 if success else 1)
