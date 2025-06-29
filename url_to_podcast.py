@@ -59,7 +59,6 @@ def fetch_article(url):
         
         title = soup.find('h1').get_text()
         
-        # A simple approach to get article text, might need adjustment for specific sites
         paragraphs = soup.find_all('p')
         text = '\n'.join([p.get_text() for p in paragraphs])
         
@@ -75,20 +74,6 @@ def clean_text_for_tts(text):
     text = re.sub(r'\s+', ' ', text)
     return text.strip()
 
-def save_audio_as_mp3(audio_data, sample_rate, output_path):
-    """Save audio data as MP3 using soundfile and pydub"""
-    with tempfile.NamedTemporaryFile(suffix='.wav', delete=False) as temp_file:
-        temp_wav_path = temp_file.name
-    
-    try:
-        sf.write(temp_wav_path, audio_data, sample_rate)
-        print(f"Converting to MP3...")
-        audio_segment = AudioSegment.from_wav(temp_wav_path)
-        audio_segment.export(output_path, format="mp3", bitrate="192k")
-    finally:
-        if Path(temp_wav_path).exists():
-            os.unlink(temp_wav_path)
-
 def update_podcast_feed(title, mp3_url, description):
     """Update the podcast.xml file with a new episode."""
     tree = ET.parse('docs/podcast.xml')
@@ -101,10 +86,8 @@ def update_podcast_feed(title, mp3_url, description):
     ET.SubElement(item, 'pubDate').text = datetime.now().strftime("%a, %d %b %Y %H:%M:%S +0000")
     ET.SubElement(item, 'enclosure', {'url': mp3_url, 'type': 'audio/mpeg', 'length': '0'}) # Length is placeholder
     
-    # Prettify XML output
     ET.indent(tree, space="  ", level=0)
     tree.write('docs/podcast.xml', encoding='utf-8', xml_declaration=True)
-
 
 def update_index_html(title, mp3_url, description):
     """Update the index.html file with a new episode."""
@@ -127,7 +110,6 @@ def update_index_html(title, mp3_url, description):
         audio_tag.append(source_tag)
         new_episode_div.append(audio_tag)
         
-        # Prepend the new episode to the top of the list
         episodes_div.insert(0, new_episode_div)
         
         f.seek(0)
@@ -162,16 +144,66 @@ def main():
     print("Initializing Kokoro TTS...")
     tts = kokoro_onnx.Kokoro(model_path=model_path, voices_path=voices_path)
     
-    print(f"Generating audio with Kokoro TTS using voice: {args.voice}...")
-    audio = tts.create(clean_content, voice=args.voice)
+    # --- Create Intro Sequence ---
+    print("Generating intro...")
     
-    # Sanitize title for filename
-    safe_filename = re.sub(r'[^a-zA-Z0-9_\-]', '', title.lower().replace(' ', '-'))
+    intro_music = AudioSegment.from_mp3("assets/intro_music.mp3")
+
+    intro_text = f"This is Dean's personal articles podcast. In this episode we're reading: {title}"
+    intro_voiceover_audio = tts.create(intro_text, voice=args.voice)
+    
+    with tempfile.NamedTemporaryFile(suffix='.wav', delete=False) as temp_file:
+        temp_wav_path = temp_file.name
+    sf.write(temp_wav_path, intro_voiceover_audio[0], 24000)
+    intro_voiceover = AudioSegment.from_wav(temp_wav_path)
+    os.unlink(temp_wav_path)
+
+    # --- Ducking Logic ---
+    # The voiceover will start 1 second into the music.
+    vo_start_in_music = 1000  # ms
+
+    # 1. Split the music
+    music_before = intro_music[:vo_start_in_music]
+    
+    vo_duration = len(intro_voiceover)
+    music_during = intro_music[vo_start_in_music : vo_start_in_music + vo_duration]
+    
+    music_after = intro_music[vo_start_in_music + vo_duration:]
+
+    # 2. Lower volume of the middle part (ducking)
+    # Reducing by 8 decibels.
+    quieter_during = music_during - 8
+    
+    # 3. Overlay the voiceover on the quieter part
+    # If the voiceover is longer than the music segment, pydub handles it gracefully.
+    overlayed_part = quieter_during.overlay(intro_voiceover)
+    
+    # 4. Stitch it all back together
+    ducked_music = music_before + overlayed_part + music_after
+
+    # 5. Add initial silence before the music starts
+    final_intro = AudioSegment.silent(duration=1000) + ducked_music
+
+    # --- Generate Main Article Audio ---
+    print(f"Generating audio for article content with Kokoro TTS using voice: {args.voice}...")
+    article_audio_data = tts.create(clean_content, voice=args.voice)
+    
+    with tempfile.NamedTemporaryFile(suffix='.wav', delete=False) as temp_file:
+        temp_wav_path = temp_file.name
+    sf.write(temp_wav_path, article_audio_data[0], 24000)
+    article_audio = AudioSegment.from_wav(temp_wav_path)
+    os.unlink(temp_wav_path)
+
+    # --- Combine Intro and Article Audio ---
+    final_audio = final_intro + AudioSegment.silent(duration=2000) + article_audio
+
+    # --- Save Final MP3 ---
+    safe_filename = re.sub(r'[^a-zA-Z0-9_-]', '', title.lower().replace(' ', '-'))
     output_filename = f"{safe_filename}_{args.voice}.mp3"
     output_path = Path("docs/episodes") / output_filename
     
-    print(f"Saving audio to {output_path}...")
-    save_audio_as_mp3(audio[0], 24000, str(output_path))
+    print(f"Saving final audio to {output_path}...")
+    final_audio.export(str(output_path), format="mp3", bitrate="192k")
     
     mp3_url = f"https://deanputney.github.io/read-articles/episodes/{output_filename}"
     description = f"An audio version of the article: {title}"
