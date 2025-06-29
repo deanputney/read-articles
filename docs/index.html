@@ -1,169 +1,57 @@
 <!DOCTYPE html>
 <html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Read Articles Podcast</title>
-    <style>
-      body {
-        font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
-        max-width: 800px;
-        margin: 0 auto;
-        padding: 20px;
-        line-height: 1.6;
-        color: #333;
-        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-        min-height: 100vh;
-      }
-      .container {
-        background: white;
-        padding: 40px;
-        border-radius: 15px;
-        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
-      }
-      h1 {
-        color: #2c3e50;
-        text-align: center;
-        margin-bottom: 10px;
-        font-size: 2.5em;
-      }
-      .subtitle {
-        text-align: center;
-        color: #7f8c8d;
-        font-size: 1.2em;
-        margin-bottom: 40px;
-      }
-      .rss-button {
-        display: inline-block;
-        background: #ff6b35;
-        color: white;
-        padding: 12px 24px;
-        text-decoration: none;
-        border-radius: 8px;
-        font-weight: bold;
-        margin: 10px 5px;
-        transition: background 0.3s;
-      }
-      .rss-button:hover {
-        background: #e55a2b;
-      }
-      .episode {
-        background: #f8f9fa;
-        padding: 20px;
-        margin: 20px 0;
-        border-radius: 10px;
-        border-left: 4px solid #667eea;
-      }
-      .episode h3 {
-        margin-top: 0;
-        color: #2c3e50;
-      }
-      .episode-meta {
-        color: #7f8c8d;
-        font-size: 0.9em;
-        margin-bottom: 10px;
-      }
-      .audio-player {
-        width: 100%;
-        margin: 15px 0;
-      }
-      .subscribe-section {
-        background: #ecf0f1;
-        padding: 20px;
-        border-radius: 10px;
-        margin: 30px 0;
-        text-align: center;
-      }
-      .tech-info {
-        background: #e8f5e8;
-        padding: 15px;
-        border-radius: 8px;
-        margin: 20px 0;
-        border-left: 4px solid #27ae60;
-      }
-    </style>
-  </head>
-  <body>
-    <div class="container">
-      <h1>🎧 Read Articles Podcast</h1>
-      <p class="subtitle">
-        AI-generated audio versions of interesting articles using Kokoro TTS
-      </p>
-
-      <div class="subscribe-section">
-        <h2>Subscribe to the Podcast</h2>
-        <p>Add this RSS feed to your favorite podcast app:</p>
-        <a href="podcast.xml" class="rss-button">📡 RSS Feed</a>
-        <br /><br />
-        <small
-          >Copy this URL:
-          <code
-            >https://deanputney.github.io/read-articles/podcast.xml</code
-          ></small
-        >
-      </div>
-
-      <h2>Latest Episodes</h2>
-
-      <div class="episode">
-        <h3>What Are People Still Doing on X? - The Atlantic (Santa Voice)</h3>
-        <div class="episode-meta">
-          Duration: 10:12 | Voice: am_santa | Published: Jan 31, 2025
-        </div>
-        <p>
-          An exploration of why people continue to use X (formerly Twitter)
-          despite its controversies, exploring the psychological and social
-          factors that keep users engaged with the platform.
-        </p>
-        <audio controls class="audio-player">
-          <source
-            src="episodes/atlantic_article_am_santa.mp3"
-            type="audio/mpeg"
-          />
-          Your browser does not support the audio element.
-        </audio>
-      </div>
-
-      <div class="episode">
-        <h3>What Are People Still Doing on X? - The Atlantic (Bella Voice)</h3>
-        <div class="episode-meta">
-          Duration: 10:44 | Voice: af_bella | Published: Jan 31, 2025
-        </div>
-        <p>
-          The same insightful article read with a different AI voice for
-          comparison. Experience how different voices can change the listening
-          experience of the same content.
-        </p>
-        <audio controls class="audio-player">
-          <source src="episodes/atlantic_article.mp3" type="audio/mpeg" />
-          Your browser does not support the audio element.
-        </audio>
-      </div>
-
-      <div class="tech-info">
-        <h3>🤖 About This Podcast</h3>
-        <p>
-          This podcast is generated using <strong>Kokoro TTS</strong>, an
-          advanced AI text-to-speech model. Articles are automatically converted
-          to natural-sounding speech with various voice options.
-        </p>
-        <ul>
-          <li><strong>TTS Engine:</strong> Kokoro ONNX</li>
-          <li>
-            <strong>Voices Available:</strong> Multiple languages and
-            personalities
-          </li>
-          <li><strong>Audio Quality:</strong> 24kHz, MP3 192kbps</li>
-          <li><strong>Updated:</strong> Automatically with new articles</li>
-        </ul>
-      </div>
-
-      <footer style="text-align: center; margin-top: 40px; color: #7f8c8d">
-        <p>
-          Generated with ❤️ using AI |
-          <a href="https://github.com/deanputney/read-articles">View Source</a>
-        </p>
-      </footer>
-    </div>
-  </body>
+ <head>
+  <meta charset="utf-8"/>
+  <meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+  <title>
+   Read Articles Podcast
+  </title>
+  <style>
+   body {
+            font-family: sans-serif;
+            margin: 40px auto;
+            max-width: 800px;
+            line-height: 1.6;
+            font-size: 18px;
+            color: #333;
+            background-color: #f9f9f9;
+        }
+        h1, h2 {
+            line-height: 1.2;
+        }
+        a {
+            color: #007bff;
+        }
+        .episode {
+            border-bottom: 1px solid #ddd;
+            padding-bottom: 20px;
+            margin-bottom: 20px;
+        }
+  </style>
+ </head>
+ <body>
+  <h1>
+   Read Articles Podcast
+  </h1>
+  <p>
+   An AI-powered podcast that converts interesting articles into high-quality audio. Subscribe with this
+   <a href="podcast.xml">
+    RSS feed
+   </a>
+   .
+  </p>
+  <div id="episodes">
+   <div class="episode">
+    <h2>
+     Community is Motivation on Tap
+    </h2>
+    <p>
+     An audio version of the article: Community is Motivation on Tap
+    </p>
+    <audio controls="True">
+     <source src="https://deanputney.github.io/read-articles/episodes/community-is-motivation-on-tap_af_bella.mp3" type="audio/mpeg"/>
+    </audio>
+   </div>
+  </div>
+ </body>
 </html>

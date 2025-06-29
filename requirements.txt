@@ -1,0 +1,6 @@
+kokoro-onnx
+soundfile
+pydub
+scipy
+requests
+beautifulsoup4

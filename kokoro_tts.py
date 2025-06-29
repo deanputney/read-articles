@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 """
-Script to convert the Atlantic article to MP3 using Kokoro TTS
+Script to convert an article from a URL to MP3 using Kokoro TTS,
+and update the podcast feed.
 """
 
 import os
@@ -11,6 +12,10 @@ import numpy as np
 import soundfile as sf
 from pydub import AudioSegment
 import tempfile
+import argparse
+import xml.etree.ElementTree as ET
+from datetime import datetime
+from gemini import Gemini
 
 try:
     import kokoro_onnx
@@ -44,6 +49,13 @@ def download_model_files():
     
     return True
 
+def fetch_article(url):
+    """Fetch article content from a URL using Gemini."""
+    gemini = Gemini()
+    prompt = f"Please extract the title and main text content of the article at this URL: {url}. Return the result as a single JSON object with two keys: 'title' and 'text'."
+    response = gemini.web_fetch(prompt)
+    return response
+
 def clean_text_for_tts(text):
     """Clean and prepare text for TTS"""
     # Remove markdown formatting
@@ -53,7 +65,7 @@ def clean_text_for_tts(text):
     text = re.sub(r'#+ ', '', text)               # Headers
     
     # Remove URLs
-    text = re.sub(r'http[s]?://(?:[a-zA-Z]|[0-9]|[$-_@.&+]|[!*\\(\\),]|(?:%[0-9a-fA-F][0-9a-fA-F]))+', '', text)
+    text = re.sub(r'http[s]?://(?:[a-zA-Z]|[0-9]|[$-_@.&+]|[!*\\(\),]|(?:%[0-9a-fA-F][0-9a-fA-F]))+', '', text)
     
     # Clean up whitespace
     text = re.sub(r'\n+', ' ', text)
@@ -63,67 +75,95 @@ def clean_text_for_tts(text):
 
 def save_audio_as_mp3(audio_data, sample_rate, output_path):
     """Save audio data as MP3 using soundfile and pydub"""
-    # Create a temporary WAV file
     with tempfile.NamedTemporaryFile(suffix='.wav', delete=False) as temp_file:
         temp_wav_path = temp_file.name
     
     try:
-        # Save as WAV first using soundfile
         sf.write(temp_wav_path, audio_data, sample_rate)
-        
-        # Convert WAV to MP3 using pydub
         print(f"Converting to MP3...")
         audio_segment = AudioSegment.from_wav(temp_wav_path)
         audio_segment.export(output_path, format="mp3", bitrate="192k")
-        
     finally:
-        # Clean up temporary file
         if Path(temp_wav_path).exists():
             os.unlink(temp_wav_path)
 
+def update_podcast_feed(title, mp3_url, description):
+    """Update the podcast.xml file with a new episode."""
+    tree = ET.parse('docs/podcast.xml')
+    root = tree.getroot()
+    channel = root.find('channel')
+    
+    item = ET.SubElement(channel, 'item')
+    ET.SubElement(item, 'title').text = title
+    ET.SubElement(item, 'description').text = description
+    ET.SubElement(item, 'pubDate').text = datetime.now().strftime("%a, %d %b %Y %H:%M:%S +0000")
+    ET.SubElement(item, 'enclosure', {'url': mp3_url, 'type': 'audio/mpeg', 'length': '0'})
+    
+    tree.write('docs/podcast.xml')
+
+def update_index_html(title, mp3_url, description):
+    """Update the index.html file with a new episode."""
+    with open('docs/index.html', 'r+') as f:
+        content = f.read()
+        f.seek(0)
+        new_episode = f"""
+<div class="episode">
+    <h2>{title}</h2>
+    <p>{description}</p>
+    <audio controls>
+        <source src="{mp3_url}" type="audio/mpeg">
+    </audio>
+</div>
+"""
+        content = content.replace('<div id="episodes"></div>', f'<div id="episodes">{new_episode}</div>')
+        f.write(content)
+
 def main():
-    # Download model files if needed
+    parser = argparse.ArgumentParser(description="Convert an article from a URL to an MP3 and update the podcast feed.")
+    parser.add_argument("url", help="The URL of the article to convert.")
+    parser.add_argument("voice", help="The voice to use for the TTS conversion (e.g., am_santa).")
+    args = parser.parse_args()
+
     if not download_model_files():
         print("Failed to download required model files")
         return
-    
-    # Read the article
-    article_path = Path("What Are People Still Doing on X? - The Atlantic.md")
-    
-    if not article_path.exists():
-        print(f"Error: {article_path} not found")
+
+    article_data = fetch_article(args.url)
+    if not article_data or 'title' not in article_data or 'text' not in article_data:
+        print("Failed to fetch or parse article data.")
         return
+
+    title = article_data['title']
+    text = article_data['text']
     
-    with open(article_path, 'r', encoding='utf-8') as f:
-        content = f.read()
+    clean_content = clean_text_for_tts(text)
     
-    # Clean the text
-    clean_content = clean_text_for_tts(content)
+    print(f"Processing '{title}'...")
     
-    print(f"Processing {len(clean_content)} characters...")
-    
-    # Initialize Kokoro TTS with required paths
     model_path = "kokoro-v1.0.onnx"
     voices_path = "voices-v1.0.bin"
     
     print("Initializing Kokoro TTS...")
     tts = kokoro_onnx.Kokoro(model_path=model_path, voices_path=voices_path)
     
-    # Generate audio
-    print("Generating audio with Kokoro TTS...")
-    # Use am_santa - American male voice with Santa characteristics
-    voice = "am_santa"
-    audio = tts.create(clean_content, voice=voice)
+    print(f"Generating audio with Kokoro TTS using voice: {args.voice}...")
+    audio = tts.create(clean_content, voice=args.voice)
     
-    # Save as MP3 with voice name in filename
-    output_path = f"atlantic_article_{voice}.mp3"
-    sample_rate = 24000  # Kokoro TTS uses 24kHz sample rate
+    output_filename = f"{title.lower().replace(' ', '-')}_{args.voice}.mp3"
+    output_path = Path("docs/episodes") / output_filename
     
     print(f"Saving audio to {output_path}...")
-    save_audio_as_mp3(audio[0], sample_rate, output_path)
+    save_audio_as_mp3(audio[0], 24000, str(output_path))
     
-    print(f"Audio saved as {output_path}")
-    print(f"Duration: {len(audio[0]) / sample_rate:.1f} seconds")
+    mp3_url = f"https://deanputney.github.io/read-articles/episodes/{output_filename}"
+    
+    print("Updating podcast feed...")
+    update_podcast_feed(title, mp3_url, f"An audio version of the article: {title}")
+    
+    print("Updating website...")
+    update_index_html(title, mp3_url, f"An audio version of the article: {title}")
+    
+    print("Done.")
 
 if __name__ == "__main__":
     main()

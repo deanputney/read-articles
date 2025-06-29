@@ -89,13 +89,14 @@ kokoro_tts.py          # TTS conversion script
 
 ## 📄 Adding New Episodes
 
-1. Add your article (Markdown format) to the root directory
-2. Update `kokoro_tts.py` with the filename and desired voice
-3. Run the script to generate audio
-4. Copy the MP3 to `docs/episodes/`
-5. Update `docs/podcast.xml` with the new episode
-6. Update `docs/index.html` with the episode info
-7. Commit and push to GitHub
+1.  Add your article (Markdown format) to the `source_articles` directory
+2.  Run the script to generate the audio:
+    ```bash
+    python3 kokoro_tts.py "your_article.md" "voice_name"
+    ```
+3.  Update `docs/podcast.xml` with the new episode
+4.  Update `docs/index.html` with the episode info
+5.  Commit and push to GitHub
 
 8. **Push to GitHub:**
    ```bash

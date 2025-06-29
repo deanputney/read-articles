@@ -4,5 +4,6 @@
       "Bash(python:*)"
     ],
     "deny": []
-  }
+  },
+  "enableAllProjectMcpServers": false
 }
