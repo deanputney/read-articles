@@ -165,8 +165,9 @@ def regenerate_feed_and_html_from_mp3s():
             for row in reader:
                 articles_data.append({'Title': row[0], 'Article URL': row[1], 'MP3 URL': row[2], 'Voice': row[3], 'Date Added': row[4]})
     
-    # Re-add articles to feed and HTML in reverse order (newest first)
-    for article in reversed(articles_data):
+    # Re-add articles to feed and HTML in chronological order (oldest first)
+    # This ensures newest items appear first in both feed and HTML
+    for article in articles_data:
         title = article['Title']
         mp3_url = article['MP3 URL']
         article_url = article['Article URL']
