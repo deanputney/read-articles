@@ -17,6 +17,7 @@ import xml.etree.ElementTree as ET
 from datetime import datetime
 import requests
 from bs4 import BeautifulSoup
+import csv
 
 try:
     import kokoro_onnx
@@ -74,6 +75,20 @@ def clean_text_for_tts(text):
     text = re.sub(r'\s+', ' ', text)
     return text.strip()
 
+def save_audio_as_mp3(audio_data, sample_rate, output_path):
+    """Save audio data as MP3 using soundfile and pydub"""
+    with tempfile.NamedTemporaryFile(suffix='.wav', delete=False) as temp_file:
+        temp_wav_path = temp_file.name
+    
+    try:
+        sf.write(temp_wav_path, audio_data, sample_rate)
+        print(f"Converting to MP3...")
+        audio_segment = AudioSegment.from_wav(temp_wav_path)
+        audio_segment.export(output_path, format="mp3", bitrate="192k")
+    finally:
+        if Path(temp_wav_path).exists():
+            os.unlink(temp_wav_path)
+
 def update_podcast_feed(title, mp3_url, description):
     """Update the podcast.xml file with a new episode."""
     tree = ET.parse('docs/podcast.xml')
@@ -89,7 +104,7 @@ def update_podcast_feed(title, mp3_url, description):
     ET.indent(tree, space="  ", level=0)
     tree.write('docs/podcast.xml', encoding='utf-8', xml_declaration=True)
 
-def update_index_html(title, mp3_url, description):
+def update_index_html(title, mp3_url, description, article_url):
     """Update the index.html file with a new episode."""
     with open('docs/index.html', 'r+') as f:
         soup = BeautifulSoup(f, 'html.parser')
@@ -98,7 +113,9 @@ def update_index_html(title, mp3_url, description):
         new_episode_div = soup.new_tag('div', **{'class': 'episode'})
         
         title_tag = soup.new_tag('h2')
-        title_tag.string = title
+        link_tag = soup.new_tag('a', href=article_url)
+        link_tag.string = title
+        title_tag.append(link_tag)
         new_episode_div.append(title_tag)
         
         desc_tag = soup.new_tag('p')
@@ -116,11 +133,62 @@ def update_index_html(title, mp3_url, description):
         f.write(str(soup.prettify()))
         f.truncate()
 
+def update_articles_csv(title, article_url, mp3_url, voice):
+    """Update the articles.csv file with new episode details."""
+    csv_file = 'articles.csv'
+    file_exists = os.path.isfile(csv_file)
+    
+    with open(csv_file, 'a', newline='') as f:
+        writer = csv.writer(f)
+        if not file_exists:
+            writer.writerow(['Title', 'Article URL', 'MP3 URL', 'Voice', 'Date Added'])
+        writer.writerow([title, article_url, mp3_url, voice, datetime.now().strftime("%Y-%m-%d %H:%M:%S")])
+
+def regenerate_feed_and_html_from_mp3s():
+    """Regenerate podcast.xml and index.html from existing MP3s and articles.csv."""
+    print("Resetting podcast.xml and index.html...")
+    # Reset podcast.xml
+    with open('docs/podcast.xml', 'w') as f:
+        f.write("""<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<rss version=\"2.0\" xmlns:itunes=\"http://www.itunes.com/dtds/podcast-1.0.dtd\">\n  <channel>\n    <title>Read Articles Podcast</title>\n    <link>https://deanputney.github.io/read-articles/</link>\n    <description>An AI-powered podcast that converts interesting articles into high-quality audio.</description>\n    <language>en-us</language>\n  </channel>\n</rss>""")
+    
+    # Reset index.html
+    with open('docs/index.html', 'w') as f:
+        f.write("""<!DOCTYPE html>\n<html lang=\"en\">\n<head>\n    <meta charset=\"UTF-8\">\n    <meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\">\n    <title>Read Articles Podcast</title>\n    <style>\n        body {\n            font-family: sans-serif;\n            margin: 40px auto;\n            max-width: 800px;\n            line-height: 1.6;\n            font-size: 18px;\n            color: #333;\n            background-color: #f9f9f9;\n        }\n        h1, h2 {\n            line-height: 1.2;\n        }\n        a {\n            color: #007bff;\n        }\n        .episode {\n            border-bottom: 1px solid #ddd;\n            padding-bottom: 20px;\n            margin-bottom: 20px;\n        }\n    </style>\n</head>\n<body>\n    <h1>Read Articles Podcast</h1>\n    <p>An AI-powered podcast that converts interesting articles into high-quality audio. Subscribe with this <a href=\"podcast.xml\">RSS feed</a>.</p>\n    <div id=\"episodes\"></div>\n</body>\n</html>""")
+
+    # Read articles from CSV
+    articles_data = []
+    csv_file = 'articles.csv'
+    if os.path.exists(csv_file):
+        with open(csv_file, 'r', newline='') as f:
+            reader = csv.reader(f)
+            header = next(reader) # Skip header
+            for row in reader:
+                articles_data.append({'Title': row[0], 'Article URL': row[1], 'MP3 URL': row[2], 'Voice': row[3], 'Date Added': row[4]})
+    
+    # Re-add articles to feed and HTML in reverse order (newest first)
+    for article in reversed(articles_data):
+        title = article['Title']
+        mp3_url = article['MP3 URL']
+        article_url = article['Article URL']
+        description = f"An audio version of the article: {title}"
+        update_podcast_feed(title, mp3_url, description)
+        update_index_html(title, mp3_url, description, article_url)
+    
+    print("Podcast feed and HTML regenerated successfully.")
+
 def main():
-    parser = argparse.ArgumentParser(description="Convert an article from a URL to an MP3 and update the podcast feed.")
-    parser.add_argument("url", help="The URL of the article to convert.")
+    parser = argparse.ArgumentParser(description="Convert an article from a URL to an MP3 and update the podcast feed, or regenerate the feed from existing MP3s.")
+    parser.add_argument("url", nargs='?', help="The URL of the article to convert. Omit to regenerate feed.")
     parser.add_argument("--voice", default="af_bella", help="The voice to use for the TTS conversion (e.g., af_bella, am_santa).")
+    parser.add_argument("--reset", action="store_true", help="Reset and regenerate podcast.xml and index.html from existing MP3s and articles.csv.")
     args = parser.parse_args()
+
+    if args.reset:
+        regenerate_feed_and_html_from_mp3s()
+        return
+
+    if not args.url:
+        parser.error("The --reset flag must be used, or a URL must be provided.")
 
     if not download_model_files():
         print("Failed to download required model files")
@@ -212,7 +280,10 @@ def main():
     update_podcast_feed(title, mp3_url, description)
     
     print("Updating website...")
-    update_index_html(title, mp3_url, description)
+    update_index_html(title, mp3_url, description, args.url)
+    
+    print("Updating articles CSV...")
+    update_articles_csv(title, args.url, mp3_url, args.voice)
     
     print("Done.")
 

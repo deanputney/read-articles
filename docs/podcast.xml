@@ -6,10 +6,22 @@
     <description>An AI-powered podcast that converts interesting articles into high-quality audio.</description>
     <language>en-us</language>
     <item>
-      <title>Community is Motivation on Tap</title>
-      <description>An audio version of the article: Community is Motivation on Tap</description>
-      <pubDate>Sun, 29 Jun 2025 09:18:47 +0000</pubDate>
-      <enclosure url="https://deanputney.github.io/read-articles/episodes/community-is-motivation-on-tap_af_bella.mp3" type="audio/mpeg" length="0" />
+      <title>
+                            Flounder Mode                        </title>
+      <description>An audio version of the article: 
+                            Flounder Mode                        </description>
+      <pubDate>Fri, 04 Jul 2025 08:18:50 +0000</pubDate>
+      <enclosure url="https://deanputney.github.io/read-articles/episodes/----------------------------flounder-mode------------------------_af_bella.mp3" type="audio/mpeg" length="0" />
+    </item>
+    <item>
+      <title>
+        atharva's blog
+      </title>
+      <description>An audio version of the article: 
+        atharva's blog
+      </description>
+      <pubDate>Fri, 04 Jul 2025 08:18:50 +0000</pubDate>
+      <enclosure url="https://deanputney.github.io/read-articles/episodes/--------atharvas-blog------_af_bella.mp3" type="audio/mpeg" length="0" />
     </item>
   </channel>
 </rss>
