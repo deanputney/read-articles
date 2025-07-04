@@ -58,7 +58,7 @@ def fetch_article(url):
         response.raise_for_status()
         soup = BeautifulSoup(response.content, 'html.parser')
         
-        title = soup.find('h1').get_text()
+        title = soup.find('h1').get_text().strip()
         
         paragraphs = soup.find_all('p')
         text = '\n'.join([p.get_text() for p in paragraphs])
@@ -266,7 +266,7 @@ def main():
     final_audio = final_intro + AudioSegment.silent(duration=2000) + article_audio
 
     # --- Save Final MP3 ---
-    safe_filename = re.sub(r'[^a-zA-Z0-9_-]', '', title.lower().replace(' ', '-'))
+    safe_filename = re.sub(r'[^a-zA-Z0-9_-]', '', title.lower().replace(' ', '-')).strip('-')
     output_filename = f"{safe_filename}_{args.voice}.mp3"
     output_path = Path("docs/episodes") / output_filename
     
