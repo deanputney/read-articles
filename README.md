@@ -21,10 +21,12 @@ This project uses **Kokoro TTS**, a high-quality AI text-to-speech model, to con
 
 ### Features
 
+- **URL-to-Audio Conversion**: Convert any article URL directly to audio podcast
+- **AI-Generated Summaries**: Uses Gemini CLI to create intelligent summaries for each episode
 - **Multiple Voices**: Different AI voices for variety (am_santa, af_bella, etc.)
-- **High Quality**: 24kHz audio, 192kbps MP3 encoding
-- **Automatic Processing**: Scripts to convert articles to audio
-- **Podcast Feed**: Standards-compliant RSS feed for podcast apps
+- **High Quality**: 24kHz audio, 192kbps MP3 encoding with intro music and ducking
+- **Rich RSS Feed**: Includes article summaries, original article links, and proper chronological ordering
+- **Automated Publishing**: Simple workflow to publish new episodes with git integration
 - **GitHub Pages**: Free hosting for the podcast website and episodes
 
 ### Current Episodes
@@ -37,18 +39,43 @@ This project uses **Kokoro TTS**, a high-quality AI text-to-speech model, to con
 
 ### Prerequisites
 
+**Python Dependencies:**
 ```bash
-pip install kokoro-onnx soundfile pydub scipy
+pip install -r requirements.txt
 ```
 
-### Generate Audio
+**Gemini CLI:** Required for generating article summaries
+```bash
+npm install -g @google/generative-ai-cli
+```
 
-1. Place your article in Markdown format in the root directory
-2. Update the script with the filename
-3. Run the TTS conversion:
+### Generate Audio from URLs
+
+Convert any article URL to an audio podcast episode:
 
 ```bash
-python3 kokoro_tts.py
+python3 url_to_podcast.py "https://example.com/article-url"
+```
+
+### Regenerate Feed
+
+Regenerate the podcast feed and website from existing episodes:
+
+```bash
+python3 url_to_podcast.py --reset
+```
+
+### Quick Commands with Just
+
+```bash
+# Convert an article from URL
+just read "https://example.com/article-url"
+
+# Regenerate feed from existing episodes
+just reset
+
+# Publish all changes (reset + git commit + push)
+just publish
 ```
 
 ### Available Voices
@@ -82,28 +109,38 @@ docs/
 ├── index.html          # Main podcast website
 ├── podcast.xml         # RSS feed for podcast apps
 └── episodes/           # Audio files
-    ├── episode1.mp3
-    └── episode2.mp3
-kokoro_tts.py          # TTS conversion script
+    ├── flounder-mode_af_bella.mp3
+    ├── atharvas-blog_af_bella.mp3
+    └── community-is-motivation-on-tap_af_bella.mp3
+url_to_podcast.py       # Main script: URL to audio converter
+kokoro_tts.py          # Direct TTS conversion utility
+articles.csv           # Episode database with summaries and metadata
+justfile               # Task runner commands
+assets/
+└── intro_music.mp3     # Intro music for episodes
 ```
 
 ## 📄 Adding New Episodes
 
-1.  Add your article (Markdown format) to the `source_articles` directory
-2.  Run the script to generate the audio:
+1.  **Generate Episode:** Convert any article URL to audio:
     ```bash
-    python3 kokoro_tts.py "your_article.md" "voice_name"
+    python3 url_to_podcast.py "https://example.com/article-url"
     ```
-3.  Update `docs/podcast.xml` with the new episode
-4.  Update `docs/index.html` with the episode info
-5.  Commit and push to GitHub
+    This automatically:
+    - Fetches the article content
+    - Generates an AI summary using Gemini CLI
+    - Creates high-quality audio with intro music
+    - Updates the RSS feed and website
+    - Adds episode to the articles.csv database
 
-8. **Push to GitHub:**
-   ```bash
-   git remote add origin https://github.com/deanputney/read-articles.git
-   git branch -M main
-   git push -u origin main
-   ```
+2.  **Publish Changes:** Deploy to GitHub Pages:
+    ```bash
+    just publish
+    ```
+    This automatically:
+    - Regenerates the feed from the database
+    - Commits all changes
+    - Pushes to GitHub for immediate deployment
 
 ## 🎯 Future Enhancements
 

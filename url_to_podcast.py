@@ -18,6 +18,7 @@ from datetime import datetime
 import requests
 from bs4 import BeautifulSoup
 import csv
+import subprocess
 
 try:
     import kokoro_onnx
@@ -75,6 +76,42 @@ def clean_text_for_tts(text):
     text = re.sub(r'\s+', ' ', text)
     return text.strip()
 
+def generate_summary(text, max_length=150):
+    """Generate a summary using Gemini CLI"""
+    try:
+        # Clean the text first
+        clean_text = clean_text_for_tts(text)
+        
+        # Prepare the prompt for Gemini
+        prompt = f"Please provide a concise 1-2 sentence summary (max {max_length} characters) of this article that would be suitable for a podcast description:"
+        
+        # Call Gemini CLI
+        result = subprocess.run(
+            ['gemini', '-p', prompt],
+            input=clean_text,
+            capture_output=True,
+            text=True,
+            timeout=30
+        )
+        
+        if result.returncode == 0:
+            summary = result.stdout.strip()
+            # Truncate if too long
+            if len(summary) > max_length:
+                summary = summary[:max_length-3] + "..."
+            return summary
+        else:
+            print(f"Gemini CLI error: {result.stderr}")
+            # Fallback to simple summary
+            return f"An audio version of the article about {text[:50]}..."
+            
+    except subprocess.TimeoutExpired:
+        print("Gemini CLI timed out, using fallback summary")
+        return f"An audio version of the article about {text[:50]}..."
+    except Exception as e:
+        print(f"Error generating summary with Gemini CLI: {e}")
+        return f"An audio version of the article about {text[:50]}..."
+
 def save_audio_as_mp3(audio_data, sample_rate, output_path):
     """Save audio data as MP3 using soundfile and pydub"""
     with tempfile.NamedTemporaryFile(suffix='.wav', delete=False) as temp_file:
@@ -89,7 +126,7 @@ def save_audio_as_mp3(audio_data, sample_rate, output_path):
         if Path(temp_wav_path).exists():
             os.unlink(temp_wav_path)
 
-def update_podcast_feed(title, mp3_url, description):
+def update_podcast_feed(title, mp3_url, summary, article_url, published_date):
     """Update the podcast.xml file with a new episode."""
     tree = ET.parse('docs/podcast.xml')
     root = tree.getroot()
@@ -97,14 +134,23 @@ def update_podcast_feed(title, mp3_url, description):
     
     item = ET.SubElement(channel, 'item')
     ET.SubElement(item, 'title').text = title
-    ET.SubElement(item, 'description').text = description
-    ET.SubElement(item, 'pubDate').text = datetime.now().strftime("%a, %d %b %Y %H:%M:%S +0000")
+    ET.SubElement(item, 'description').text = f"{summary}\n\nOriginal article: {article_url}"
+    
+    # Parse the published date and format it for RSS
+    try:
+        pub_date = datetime.strptime(published_date, "%Y-%m-%d %H:%M:%S")
+        ET.SubElement(item, 'pubDate').text = pub_date.strftime("%a, %d %b %Y %H:%M:%S +0000")
+    except ValueError:
+        # Fallback to current time if date parsing fails
+        ET.SubElement(item, 'pubDate').text = datetime.now().strftime("%a, %d %b %Y %H:%M:%S +0000")
+    
+    ET.SubElement(item, 'link').text = article_url
     ET.SubElement(item, 'enclosure', {'url': mp3_url, 'type': 'audio/mpeg', 'length': '0'}) # Length is placeholder
     
     ET.indent(tree, space="  ", level=0)
     tree.write('docs/podcast.xml', encoding='utf-8', xml_declaration=True)
 
-def update_index_html(title, mp3_url, description, article_url):
+def update_index_html(title, mp3_url, summary, article_url):
     """Update the index.html file with a new episode."""
     with open('docs/index.html', 'r+') as f:
         soup = BeautifulSoup(f, 'html.parser')
@@ -119,7 +165,7 @@ def update_index_html(title, mp3_url, description, article_url):
         new_episode_div.append(title_tag)
         
         desc_tag = soup.new_tag('p')
-        desc_tag.string = description
+        desc_tag.string = summary
         new_episode_div.append(desc_tag)
         
         audio_tag = soup.new_tag('audio', controls=True)
@@ -133,16 +179,24 @@ def update_index_html(title, mp3_url, description, article_url):
         f.write(str(soup.prettify()))
         f.truncate()
 
-def update_articles_csv(title, article_url, mp3_url, voice):
+def update_articles_csv(title, article_url, mp3_url, voice, summary=""):
     """Update the articles.csv file with new episode details."""
     csv_file = 'articles.csv'
     file_exists = os.path.isfile(csv_file)
     
+    current_time = datetime.now()
+    date_added = current_time.strftime("%Y-%m-%d %H:%M:%S")
+    published_date = current_time.strftime("%Y-%m-%d %H:%M:%S")
+    
+    # Generate a summary if not provided
+    if not summary:
+        summary = f"An audio version of the article: {title}"
+    
     with open(csv_file, 'a', newline='') as f:
         writer = csv.writer(f)
         if not file_exists:
-            writer.writerow(['Title', 'Article URL', 'MP3 URL', 'Voice', 'Date Added'])
-        writer.writerow([title, article_url, mp3_url, voice, datetime.now().strftime("%Y-%m-%d %H:%M:%S")])
+            writer.writerow(['Title', 'Article URL', 'MP3 URL', 'Voice', 'Date Added', 'Published Date', 'Summary'])
+        writer.writerow([title, article_url, mp3_url, voice, date_added, published_date, summary])
 
 def regenerate_feed_and_html_from_mp3s():
     """Regenerate podcast.xml and index.html from existing MP3s and articles.csv."""
@@ -163,7 +217,11 @@ def regenerate_feed_and_html_from_mp3s():
             reader = csv.reader(f)
             header = next(reader) # Skip header
             for row in reader:
-                articles_data.append({'Title': row[0], 'Article URL': row[1], 'MP3 URL': row[2], 'Voice': row[3], 'Date Added': row[4]})
+                # Handle both old and new CSV formats
+                if len(row) >= 7:  # New format with Published Date and Summary
+                    articles_data.append({'Title': row[0], 'Article URL': row[1], 'MP3 URL': row[2], 'Voice': row[3], 'Date Added': row[4], 'Published Date': row[5], 'Summary': row[6]})
+                else:  # Old format
+                    articles_data.append({'Title': row[0], 'Article URL': row[1], 'MP3 URL': row[2], 'Voice': row[3], 'Date Added': row[4], 'Published Date': row[4], 'Summary': f"An audio version of the article: {row[0]}"})
     
     # Re-add articles to feed and HTML in chronological order (oldest first)
     # This ensures newest items appear first in both feed and HTML
@@ -171,9 +229,10 @@ def regenerate_feed_and_html_from_mp3s():
         title = article['Title']
         mp3_url = article['MP3 URL']
         article_url = article['Article URL']
-        description = f"An audio version of the article: {title}"
-        update_podcast_feed(title, mp3_url, description)
-        update_index_html(title, mp3_url, description, article_url)
+        summary = article['Summary']
+        published_date = article['Published Date']
+        update_podcast_feed(title, mp3_url, summary, article_url, published_date)
+        update_index_html(title, mp3_url, summary, article_url)
     
     print("Podcast feed and HTML regenerated successfully.")
 
@@ -275,16 +334,19 @@ def main():
     final_audio.export(str(output_path), format="mp3", bitrate="192k")
     
     mp3_url = f"https://deanputney.github.io/read-articles/episodes/{output_filename}"
-    description = f"An audio version of the article: {title}"
+    
+    # Generate summary from the article text
+    summary = generate_summary(text)
+    current_time = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
     
     print("Updating podcast feed...")
-    update_podcast_feed(title, mp3_url, description)
+    update_podcast_feed(title, mp3_url, summary, args.url, current_time)
     
     print("Updating website...")
-    update_index_html(title, mp3_url, description, args.url)
+    update_index_html(title, mp3_url, summary, args.url)
     
     print("Updating articles CSV...")
-    update_articles_csv(title, args.url, mp3_url, args.voice)
+    update_articles_csv(title, args.url, mp3_url, args.voice, summary)
     
     print("Done.")
 

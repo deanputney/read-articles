@@ -7,21 +7,39 @@
     <language>en-us</language>
     <item>
       <title>Community is Motivation on Tap</title>
-      <description>An audio version of the article: Community is Motivation on Tap</description>
-      <pubDate>Fri, 04 Jul 2025 08:49:36 +0000</pubDate>
+      <description>An exploration of how community and social connections can serve as a powerful source of motivation and inspiration in our daily lives.
+
+Original article: https://example.com/community-motivation</description>
+      <pubDate>Fri, 04 Jul 2025 10:00:00 +0000</pubDate>
+      <link>https://example.com/community-motivation</link>
       <enclosure url="https://deanputney.github.io/read-articles/episodes/community-is-motivation-on-tap_af_bella.mp3" type="audio/mpeg" length="0" />
     </item>
     <item>
       <title>atharva's blog</title>
-      <description>An audio version of the article: atharva's blog</description>
-      <pubDate>Fri, 04 Jul 2025 08:49:36 +0000</pubDate>
+      <description>A technical deep-dive into VJEPA (Video Joint Embedding Predictive Architecture) and its applications in computer vision and machine learning.
+
+Original article: https://ksagar.bearblog.dev/vjepa/</description>
+      <pubDate>Fri, 04 Jul 2025 11:00:00 +0000</pubDate>
+      <link>https://ksagar.bearblog.dev/vjepa/</link>
       <enclosure url="https://deanputney.github.io/read-articles/episodes/atharvas-blog_af_bella.mp3" type="audio/mpeg" length="0" />
     </item>
     <item>
       <title>Flounder Mode</title>
-      <description>An audio version of the article: Flounder Mode</description>
-      <pubDate>Fri, 04 Jul 2025 08:49:36 +0000</pubDate>
+      <description>An insightful analysis of 'flounder mode' - the state of being stuck or struggling to make progress, and strategies for overcoming it.
+
+Original article: https://joincolossus.com/article/flounder-mode/</description>
+      <pubDate>Fri, 04 Jul 2025 12:00:00 +0000</pubDate>
+      <link>https://joincolossus.com/article/flounder-mode/</link>
       <enclosure url="https://deanputney.github.io/read-articles/episodes/flounder-mode_af_bella.mp3" type="audio/mpeg" length="0" />
+    </item>
+    <item>
+      <title>I Called Everyone in Jeffrey Epstein’s Little Black Book</title>
+      <description>An audio version of the article: I Called Everyone in Jeffrey Epstein’s Little Black Book
+
+Original article: https://www.motherjones.com/politics/2020/10/i-called-everyone-in-jeffrey-epsteins-little-black-book/</description>
+      <pubDate>Wed, 16 Jul 2025 21:57:06 +0000</pubDate>
+      <link>https://www.motherjones.com/politics/2020/10/i-called-everyone-in-jeffrey-epsteins-little-black-book/</link>
+      <enclosure url="https://deanputney.github.io/read-articles/episodes/i-called-everyone-in-jeffrey-epsteins-little-black-book_af_bella.mp3" type="audio/mpeg" length="0" />
     </item>
   </channel>
 </rss>
