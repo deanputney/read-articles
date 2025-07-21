@@ -71,6 +71,12 @@ python3 url_to_podcast.py --reset
 # Convert an article from URL
 just read "https://example.com/article-url"
 
+# Convert an article from PDF with URL for links
+just read "https://example.com/article-url" "/path/to/article.pdf"
+
+# Convert from PDF only (uses PDF filename for reference)
+just read "" "/path/to/article.pdf"
+
 # Regenerate feed from existing episodes
 just reset
 

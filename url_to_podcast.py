@@ -21,6 +21,11 @@ import csv
 import subprocess
 
 try:
+    import PyPDF2
+except ImportError:
+    PyPDF2 = None
+
+try:
     import kokoro_onnx
 except ImportError:
     print("Error: kokoro_onnx not found. Install with: pip install -r requirements.txt")
@@ -67,6 +72,44 @@ def fetch_article(url):
         return {"title": title, "text": text}
     except Exception as e:
         print(f"Error fetching article: {e}")
+        return None
+
+def extract_pdf_content(pdf_path):
+    """Extract text and title from a PDF file."""
+    if PyPDF2 is None:
+        print("Error: PyPDF2 not found. Install with: pip install PyPDF2")
+        return None
+    
+    try:
+        with open(pdf_path, 'rb') as file:
+            reader = PyPDF2.PdfReader(file)
+            
+            # Extract title from PDF metadata or first page
+            title = ""
+            if reader.metadata and reader.metadata.title:
+                title = reader.metadata.title
+            else:
+                # Try to get title from first few lines of first page
+                if len(reader.pages) > 0:
+                    first_page_text = reader.pages[0].extract_text()
+                    lines = first_page_text.strip().split('\n')
+                    # Use the first non-empty line as title
+                    for line in lines[:5]:
+                        if line.strip():
+                            title = line.strip()
+                            break
+            
+            if not title:
+                title = Path(pdf_path).stem  # Use filename as fallback
+            
+            # Extract all text from all pages
+            text = ""
+            for page in reader.pages:
+                text += page.extract_text() + "\n"
+            
+            return {"title": title, "text": text}
+    except Exception as e:
+        print(f"Error extracting PDF content: {e}")
         return None
 
 def clean_text_for_tts(text):
@@ -239,6 +282,7 @@ def regenerate_feed_and_html_from_mp3s():
 def main():
     parser = argparse.ArgumentParser(description="Convert an article from a URL to an MP3 and update the podcast feed, or regenerate the feed from existing MP3s.")
     parser.add_argument("url", nargs='?', help="The URL of the article to convert. Omit to regenerate feed.")
+    parser.add_argument("pdf_path", nargs='?', help="Optional PDF file path to extract content from instead of scraping the URL.")
     parser.add_argument("--voice", default="af_bella", help="The voice to use for the TTS conversion (e.g., af_bella, am_santa).")
     parser.add_argument("--reset", action="store_true", help="Reset and regenerate podcast.xml and index.html from existing MP3s and articles.csv.")
     args = parser.parse_args()
@@ -247,17 +291,26 @@ def main():
         regenerate_feed_and_html_from_mp3s()
         return
 
-    if not args.url:
-        parser.error("The --reset flag must be used, or a URL must be provided.")
+    if not args.url and not args.pdf_path:
+        parser.error("The --reset flag must be used, or a URL (and optionally PDF path) must be provided.")
 
     if not download_model_files():
         print("Failed to download required model files")
         return
 
-    article_data = fetch_article(args.url)
-    if not article_data or not article_data['title'] or not article_data['text']:
-        print("Failed to fetch or parse article data. The scraper might need adjustments for this website.")
-        return
+    # Get article content from PDF or URL
+    if args.pdf_path:
+        print(f"Extracting content from PDF: {args.pdf_path}")
+        article_data = extract_pdf_content(args.pdf_path)
+        if not article_data or not article_data['title'] or not article_data['text']:
+            print("Failed to extract content from PDF.")
+            return
+    else:
+        print(f"Fetching article from URL: {args.url}")
+        article_data = fetch_article(args.url)
+        if not article_data or not article_data['title'] or not article_data['text']:
+            print("Failed to fetch or parse article data. The scraper might need adjustments for this website.")
+            return
 
     title = article_data['title']
     text = article_data['text']
@@ -339,14 +392,17 @@ def main():
     summary = generate_summary(text)
     current_time = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
     
+    # Use URL if provided, otherwise use PDF path for reference
+    article_url = args.url if args.url else args.pdf_path
+    
     print("Updating podcast feed...")
-    update_podcast_feed(title, mp3_url, summary, args.url, current_time)
+    update_podcast_feed(title, mp3_url, summary, article_url, current_time)
     
     print("Updating website...")
-    update_index_html(title, mp3_url, summary, args.url)
+    update_index_html(title, mp3_url, summary, article_url)
     
     print("Updating articles CSV...")
-    update_articles_csv(title, args.url, mp3_url, args.voice, summary)
+    update_articles_csv(title, article_url, mp3_url, args.voice, summary)
     
     print("Done.")
 

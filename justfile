@@ -1,5 +1,5 @@
-read URL:
-	python3 url_to_podcast.py "{{URL}}"
+read URL PDF_PATH="":
+	python3 url_to_podcast.py "{{URL}}" "{{PDF_PATH}}"
 
 reset:
 	python3 url_to_podcast.py --reset

@@ -4,3 +4,4 @@ pydub
 scipy
 requests
 beautifulsoup4
+PyPDF2
