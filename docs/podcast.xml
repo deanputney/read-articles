@@ -104,5 +104,23 @@ Original article: https://www.experimental-history.com/p/face-it-youre-a-crazy-p
       <link>https://www.experimental-history.com/p/face-it-youre-a-crazy-person</link>
       <enclosure url="https://deanputney.github.io/read-articles/episodes/experimental-history_af_bella.mp3" type="audio/mpeg" length="0" />
     </item>
+    <item>
+      <title>My AI Skeptic Friends Are All Nuts</title>
+      <description>A seasoned developer's heartfelt provocation to AI skeptics in software engineering, arguing that modern LLM agents are vital tools, not just a fad.
+
+Original article: https://fly.io/blog/youre-all-nuts/</description>
+      <pubDate>Tue, 05 Aug 2025 08:11:57 +0000</pubDate>
+      <link>https://fly.io/blog/youre-all-nuts/</link>
+      <enclosure url="https://deanputney.github.io/read-articles/episodes/my-ai-skeptic-friends-are-all-nuts_af_bella.mp3" type="audio/mpeg" length="0" />
+    </item>
+    <item>
+      <title>The Relativity of Wrong</title>
+      <description>Are scientific theories wrong, or just incomplete? Isaac Asimov argues for the latter, showing how our understanding of the universe is constantly ...
+
+Original article: https://hermiene.net/essays-trans/relativity_of_wrong.html</description>
+      <pubDate>Tue, 26 Aug 2025 09:56:31 +0000</pubDate>
+      <link>https://hermiene.net/essays-trans/relativity_of_wrong.html</link>
+      <enclosure url="https://deanputney.github.io/read-articles/episodes/the-relativity-of-wrong_af_bella.mp3" type="audio/mpeg" length="0" />
+    </item>
   </channel>
 </rss>
