@@ -1,0 +1,90 @@
+name: Process Article
+
+# Triggered by a repository_dispatch event sent from docs/submit.html
+# (or manually from the Actions tab via workflow_dispatch).
+on:
+  repository_dispatch:
+    types: [new-article]
+  workflow_dispatch:
+    inputs:
+      url:
+        description: "Article URL to convert"
+        required: true
+        type: string
+      voice:
+        description: "Kokoro voice"
+        required: false
+        default: "af_bella"
+        type: string
+
+# Serialize runs so two submissions don't race on the git push.
+concurrency:
+  group: process-article
+  cancel-in-progress: false
+
+permissions:
+  contents: write
+
+jobs:
+  process:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Resolve inputs
+        id: inputs
+        env:
+          DISPATCH_URL: ${{ github.event.client_payload.url }}
+          DISPATCH_VOICE: ${{ github.event.client_payload.voice }}
+          MANUAL_URL: ${{ github.event.inputs.url }}
+          MANUAL_VOICE: ${{ github.event.inputs.voice }}
+        run: |
+          URL="${DISPATCH_URL:-$MANUAL_URL}"
+          VOICE="${DISPATCH_VOICE:-${MANUAL_VOICE:-af_bella}}"
+          if [ -z "$URL" ]; then
+            echo "No URL provided." >&2
+            exit 1
+          fi
+          echo "url=$URL" >> "$GITHUB_OUTPUT"
+          echo "voice=$VOICE" >> "$GITHUB_OUTPUT"
+          echo "Processing: $URL (voice: $VOICE)"
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install system dependencies
+        run: sudo apt-get update && sudo apt-get install -y ffmpeg libsndfile1
+
+      - name: Install Python dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      # The Kokoro model (~310MB) and voices (~27MB) are gitignored and
+      # downloaded by the script. Cache them so we don't re-download each run.
+      - name: Cache Kokoro model files
+        uses: actions/cache@v4
+        with:
+          path: |
+            kokoro-v1.0.onnx
+            voices-v1.0.bin
+          key: kokoro-model-v1.0
+
+      - name: Convert article to podcast episode
+        run: |
+          python3 url_to_podcast.py "${{ steps.inputs.outputs.url }}" --voice "${{ steps.inputs.outputs.voice }}"
+
+      - name: Commit and push
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add docs/ articles.csv
+          if git diff --cached --quiet; then
+            echo "No changes to commit (conversion may have failed to produce output)."
+            exit 1
+          fi
+          git commit -m "Add episode from ${{ steps.inputs.outputs.url }}"
+          git push
