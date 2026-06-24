@@ -150,11 +150,8 @@
 
     <div id="status"></div>
 
+    <script src="submit.js"></script>
     <script>
-        const OWNER = "deanputney";
-        const REPO = "read-articles";
-        const TOKEN_KEY = "ra_github_token";
-
         const settings = document.getElementById("settings");
         const settingsToggle = document.getElementById("settings-toggle");
         const noTokenNotice = document.getElementById("no-token-notice");
@@ -163,7 +160,7 @@
         const statusEl = document.getElementById("status");
 
         function getToken() {
-            return localStorage.getItem(TOKEN_KEY);
+            return RA.getToken();
         }
 
         function setStatus(msg, kind) {
@@ -192,14 +189,14 @@
         document.getElementById("save-token").addEventListener("click", () => {
             const val = tokenInput.value.trim();
             if (!val) { setStatus("Enter a token first.", "err"); return; }
-            localStorage.setItem(TOKEN_KEY, val);
+            RA.setToken(val);
             tokenInput.value = "";
             setStatus("Token saved in this browser.", "ok");
             refreshTokenState();
         });
 
         document.getElementById("clear-token").addEventListener("click", () => {
-            localStorage.removeItem(TOKEN_KEY);
+            RA.clearToken();
             tokenInput.value = "";
             tokenInput.placeholder = "github_pat_...";
             setStatus("Saved token removed.", "info");
@@ -218,40 +215,10 @@
             btn.disabled = true;
             setStatus("Sending…", "info");
 
-            try {
-                const resp = await fetch(
-                    `https://api.github.com/repos/${OWNER}/${REPO}/dispatches`,
-                    {
-                        method: "POST",
-                        headers: {
-                            "Accept": "application/vnd.github+json",
-                            "Authorization": `Bearer ${token}`,
-                            "X-GitHub-Api-Version": "2022-11-28"
-                        },
-                        body: JSON.stringify({
-                            event_type: "new-article",
-                            client_payload: { url, voice }
-                        })
-                    }
-                );
-
-                if (resp.status === 204) {
-                    setStatus("Submitted! The Action is running — check the Actions tab in a few minutes.", "ok");
-                    form.reset();
-                } else if (resp.status === 401 || resp.status === 403) {
-                    setStatus("GitHub rejected the token (401/403). Check it grants this repo 'Contents: Read and write' and hasn't expired — update it in Settings.", "err");
-                } else if (resp.status === 404) {
-                    setStatus("Repository not found (404). The token may lack access to this repo.", "err");
-                } else {
-                    let detail = "";
-                    try { detail = (await resp.json()).message || ""; } catch (_) {}
-                    setStatus(`Unexpected response ${resp.status}. ${detail}`, "err");
-                }
-            } catch (err) {
-                setStatus(`Request failed: ${err.message}`, "err");
-            } finally {
-                btn.disabled = false;
-            }
+            const result = await RA.dispatch(url, voice);
+            setStatus(result.message, result.ok ? "ok" : "err");
+            if (result.ok) form.reset();
+            btn.disabled = false;
         });
 
         refreshTokenState();
