@@ -63,12 +63,29 @@ def fetch_article(url):
         response = requests.get(url, headers={'User-Agent': 'Mozilla/5.0'})
         response.raise_for_status()
         soup = BeautifulSoup(response.content, 'html.parser')
-        
-        title = soup.find('h1').get_text().strip()
-        
+
+        # Title: prefer <h1>, then og:title, then <title>. Not every site
+        # exposes an <h1>, so fall back instead of crashing.
+        title = None
+        h1 = soup.find('h1')
+        if h1 and h1.get_text(strip=True):
+            title = h1.get_text().strip()
+        if not title:
+            og_title = soup.find('meta', property='og:title')
+            if og_title and og_title.get('content'):
+                title = og_title['content'].strip()
+        if not title and soup.title and soup.title.get_text(strip=True):
+            title = soup.title.get_text().strip()
+        if not title:
+            print("Error fetching article: could not determine a title (no <h1>, og:title, or <title>).")
+            return None
+
         paragraphs = soup.find_all('p')
         text = '\n'.join([p.get_text() for p in paragraphs])
-        
+        if not text.strip():
+            print("Error fetching article: no <p> text content found on the page.")
+            return None
+
         return {"title": title, "text": text}
     except Exception as e:
         print(f"Error fetching article: {e}")
@@ -296,7 +313,7 @@ def main():
 
     if not download_model_files():
         print("Failed to download required model files")
-        return
+        exit(1)
 
     # Get article content from PDF or URL
     if args.pdf_path:
@@ -304,13 +321,13 @@ def main():
         article_data = extract_pdf_content(args.pdf_path)
         if not article_data or not article_data['title'] or not article_data['text']:
             print("Failed to extract content from PDF.")
-            return
+            exit(1)
     else:
         print(f"Fetching article from URL: {args.url}")
         article_data = fetch_article(args.url)
         if not article_data or not article_data['title'] or not article_data['text']:
             print("Failed to fetch or parse article data. The scraper might need adjustments for this website.")
-            return
+            exit(1)
 
     title = article_data['title']
     text = article_data['text']
