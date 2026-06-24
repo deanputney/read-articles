@@ -90,22 +90,28 @@
     <div id="settings">
         <h2 style="margin-top:0;">GitHub access token</h2>
         <p>Submitting an article triggers a GitHub Action in
-           <code>deanputney/read-articles</code>. That requires a personal access
-           token, stored only in this browser (<code>localStorage</code>) — it is
-           never sent anywhere except GitHub's API.</p>
+           <code>deanputney/read-articles</code>. That requires a fine-grained
+           personal access token, stored only in this browser
+           (<code>localStorage</code>) — it is never sent anywhere except
+           GitHub's API.</p>
         <ol>
             <li>
-                Create a token:
-                <a href="https://github.com/settings/tokens/new?scopes=repo&description=read-articles%20podcast"
-                   target="_blank" rel="noopener">open GitHub token creation →</a>
-                <br>
-                <span class="muted">The link pre-selects the <code>repo</code> scope. Set an
-                expiration you're comfortable with and click <strong>Generate token</strong>.</span>
+                Open the
+                <a href="https://github.com/settings/personal-access-tokens/new"
+                   target="_blank" rel="noopener">fine-grained token page →</a>
             </li>
-            <li>Copy the token (starts with <code>ghp_</code>) and paste it below.</li>
+            <li>Set an expiration you're comfortable with.</li>
+            <li>Under <strong>Repository access</strong>, choose
+                <em>Only select repositories</em> and pick
+                <code>deanputney/read-articles</code>.</li>
+            <li>Under <strong>Repository permissions</strong>, set
+                <strong>Contents</strong> to <em>Read and write</em>
+                (this is what lets the form trigger the workflow).</li>
+            <li>Click <strong>Generate token</strong>, copy it (starts with
+                <code>github_pat_</code>), and paste it below.</li>
         </ol>
-        <label for="token">Personal access token</label>
-        <input type="password" id="token" placeholder="ghp_..." autocomplete="off">
+        <label for="token">Fine-grained access token</label>
+        <input type="password" id="token" placeholder="github_pat_..." autocomplete="off">
         <button id="save-token">Save token</button>
         <button class="secondary" id="clear-token" style="margin-left:8px;">Remove saved token</button>
     </div>
@@ -195,7 +201,7 @@
         document.getElementById("clear-token").addEventListener("click", () => {
             localStorage.removeItem(TOKEN_KEY);
             tokenInput.value = "";
-            tokenInput.placeholder = "ghp_...";
+            tokenInput.placeholder = "github_pat_...";
             setStatus("Saved token removed.", "info");
             refreshTokenState();
         });
@@ -233,7 +239,7 @@
                     setStatus("Submitted! The Action is running — check the Actions tab in a few minutes.", "ok");
                     form.reset();
                 } else if (resp.status === 401 || resp.status === 403) {
-                    setStatus("GitHub rejected the token (401/403). Check it has the 'repo' scope and hasn't expired — update it in Settings.", "err");
+                    setStatus("GitHub rejected the token (401/403). Check it grants this repo 'Contents: Read and write' and hasn't expired — update it in Settings.", "err");
                 } else if (resp.status === 404) {
                     setStatus("Repository not found (404). The token may lack access to this repo.", "err");
                 } else {
