@@ -79,9 +79,18 @@ def fetch_article(url):
         if not title:
             print("Error fetching article: could not determine a title (no <h1>, og:title, or <title>).")
             return None
+        title = clean_title(title)
 
-        paragraphs = soup.find_all('p')
-        text = '\n'.join([p.get_text() for p in paragraphs])
+        # Drop consecutive duplicate paragraphs (e.g. a byline repeated in the
+        # markup) so they aren't read twice in the audio or summary.
+        paragraphs = []
+        prev = None
+        for p in soup.find_all('p'):
+            chunk = p.get_text()
+            if chunk.strip() and chunk.strip() != prev:
+                paragraphs.append(chunk)
+            prev = chunk.strip()
+        text = '\n'.join(paragraphs)
         if not text.strip():
             print("Error fetching article: no <p> text content found on the page.")
             return None
@@ -118,16 +127,48 @@ def extract_pdf_content(pdf_path):
             
             if not title:
                 title = Path(pdf_path).stem  # Use filename as fallback
-            
+            title = clean_title(title)
+
             # Extract all text from all pages
             text = ""
             for page in reader.pages:
                 text += page.extract_text() + "\n"
-            
+
             return {"title": title, "text": text}
     except Exception as e:
         print(f"Error extracting PDF content: {e}")
         return None
+
+def clean_title(title):
+    """Strip a trailing site-name suffix from a title (e.g. "Foo · Bar Site").
+
+    Only splits on separators that almost always denote a site name, not the
+    hyphen-minus, which legitimately appears in many article titles.
+    """
+    if not title:
+        return title
+    for sep in (" · ", " | ", " — ", " – ", " » "):
+        if sep in title:
+            left = title.split(sep)[0].strip()
+            if left:
+                return left
+    return title.strip()
+
+def fallback_summary(text, max_length=150):
+    """Build a readable summary from the article text itself.
+
+    Used when Gemini isn't available. Skips leading chrome (bylines, dates,
+    short headings), collapses whitespace, and truncates on a word boundary
+    so the feed/site description is a clean single line rather than raw,
+    mid-word text.
+    """
+    lines = [l.strip() for l in text.split('\n') if l.strip()]
+    prose = [l for l in lines if len(l) >= 40 and not l.lower().startswith('by ')]
+    candidate = ' '.join(prose) if prose else ' '.join(lines)
+    clean = clean_text_for_tts(candidate)
+    if len(clean) <= max_length:
+        return clean
+    return clean[:max_length].rsplit(' ', 1)[0] + '…'
 
 def clean_text_for_tts(text):
     """Clean and prepare text for TTS"""
@@ -162,15 +203,14 @@ def generate_summary(text, max_length=150):
             return summary
         else:
             print(f"Gemini CLI error: {result.stderr}")
-            # Fallback to simple summary
-            return f"An audio version of the article about {text[:50]}..."
-            
+            return fallback_summary(text, max_length)
+
     except subprocess.TimeoutExpired:
         print("Gemini CLI timed out, using fallback summary")
-        return f"An audio version of the article about {text[:50]}..."
+        return fallback_summary(text, max_length)
     except Exception as e:
         print(f"Error generating summary with Gemini CLI: {e}")
-        return f"An audio version of the article about {text[:50]}..."
+        return fallback_summary(text, max_length)
 
 def save_audio_as_mp3(audio_data, sample_rate, output_path):
     """Save audio data as MP3 using soundfile and pydub"""
